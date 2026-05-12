@@ -24,9 +24,9 @@ export async function POST(req: Request) {
   const prisma = getPrisma();
 
   if (event.type === "checkout.session.completed") {
-    const subscription = await stripe.subscriptions.retrieve(
+    const stripeSubscription = (await stripe.subscriptions.retrieve(
       session.subscription as string
-    ) as Stripe.Subscription;
+    )) as any;
 
     if (!session?.metadata?.userId) {
       return new NextResponse("User id is required", { status: 400 });
@@ -37,33 +37,33 @@ export async function POST(req: Request) {
         userId: session.metadata.userId,
       },
       update: {
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
+        stripeSubscriptionId: stripeSubscription.id,
+        status: stripeSubscription.status,
         plan: "PRO",
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
       },
       create: {
         userId: session.metadata.userId,
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
+        stripeSubscriptionId: stripeSubscription.id,
+        status: stripeSubscription.status,
         plan: "PRO",
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
       },
     });
   }
 
   if (event.type === "invoice.payment_succeeded") {
-    const subscription = await stripe.subscriptions.retrieve(
+    const stripeSubscription = (await stripe.subscriptions.retrieve(
       session.subscription as string
-    ) as Stripe.Subscription;
+    )) as any;
 
     await prisma.subscription.update({
       where: {
-        stripeSubscriptionId: subscription.id,
+        stripeSubscriptionId: stripeSubscription.id,
       },
-      update: {
-        status: subscription.status,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      data: {
+        status: stripeSubscription.status,
+        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
       },
     });
   }
